@@ -36,37 +36,31 @@ class NeuralNetwork(torch.nn.Module):
 
         # Input: Bx1x28x28
 
-        self.vgg_block1 = torch.nn.Sequential(
             # feature extraction block without downsampling
-            torch.nn.Conv2d(in_channels=1, out_channels=8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
-            torch.nn.BatchNorm2d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
-            torch.nn.ReLU(inplace=True),
+        self.conv1 = torch.nn.Conv2d(in_channels=1, out_channels=8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.bn1 = torch.nn.BatchNorm2d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        self.relu1 = torch.nn.ReLU(inplace=True)
             # Bx8x28x28
-        )
 
-        self.vgg_block2 = torch.nn.Sequential(
             # feature processing block
-            torch.nn.Conv2d(in_channels=8, out_channels=8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)),
-            torch.nn.BatchNorm2d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
-            torch.nn.ReLU(inplace=True),
+        self.conv2 = torch.nn.Conv2d(in_channels=8, out_channels=8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.bn2 = torch.nn.BatchNorm2d(8, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        self.relu2 = torch.nn.ReLU(inplace=True)
             # Bx8x28x28
-        )
 
-        self.vgg_block3 = torch.nn.Sequential(
             # feature downsampling using max pooling
-            torch.nn.MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False),
+        self.maxpool = torch.nn.MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1, ceil_mode=False)
             # Bx8x14x14
-        )
 
         self.flatten = torch.nn.Flatten()
 
-        self.linear_relu_stack = torch.nn.Sequential(
-            torch.nn.Linear(8*14*14, 128),
-            torch.nn.ReLU(inplace=True),
-            torch.nn.Linear(128, 128),
-            torch.nn.ReLU(inplace=True),
-            torch.nn.Linear(128, 10),
-        )
+        self.linear3 = torch.nn.Linear(8*14*14, 128)
+        self.relu3 = torch.nn.ReLU(inplace=True)
+        self.linear4 = torch.nn.Linear(128, 128)
+        self.relu4 = torch.nn.ReLU(inplace=True)
+        self.linear5 = torch.nn.Linear(128, 10)
+
+        self.softmax = torch.nn.Softmax(dim=1)
 
         # original from pytorch tutorial
         # self.linear_relu_stack = torch.nn.Sequential(
@@ -80,20 +74,28 @@ class NeuralNetwork(torch.nn.Module):
     def forward(self, x):
         # print('x1.shape =', x.shape)
 
-        x = self.vgg_block1(x)
+        x = self.relu1(self.bn1(self.conv1(x)))
         # print('x2.shape =', x.shape)
 
-        x = self.vgg_block2(x)
+        x = self.relu2(self.bn2(self.conv2(x)))
         # print('x3.shape =', x.shape)
 
-        x = self.vgg_block3(x)
+        x = self.maxpool(x)
         # print('x4.shape =', x.shape)
 
         x = self.flatten(x)
         # print('x5.shape =', x.shape)
 
-        x = self.linear_relu_stack(x)
+        x = self.relu3(self.linear3(x))
         # print('x6.shape =', x.shape)
+
+        x = self.relu4(self.linear4(x))
+        # print('x6.shape =', x.shape)
+
+        x = self.linear5(x)
+        # print('x6.shape =', x.shape)
+
+        x = self.softmax(x)
 
         return x
 
@@ -103,10 +105,25 @@ if __name__ == "__main__":
     print(model)
 
     X: torch.Tensor = torch.rand(1, 1, 28, 28, device=DEVICE)
+    y: torch.Tensor = torch.ones(1, dtype=torch.int64)
     logits: torch.Tensor = model(X)
 
-    print('output shape =', logits.shape)
+    print('X shape =', X.shape)
+    print('y shape =', y.shape)
+
+    print('X dtype =', X.dtype)
+    print('y dtype =', y.dtype)
+
+    print('softmax output shape =', logits.shape)
+    print('softmax output =', logits.clone().detach().numpy())
+
+    loss_function = torch.nn.CrossEntropyLoss()
+    loss = loss_function(logits, y)
+
+    print('loss output shape =', loss.shape)
+    print('loss output =', loss.clone().detach().numpy())
 
     pred_probab = torch.nn.Softmax(dim=1)(logits)
     y_pred = pred_probab.argmax(1)
+
     print(f"Predicted class: {y_pred}")

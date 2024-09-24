@@ -57,6 +57,10 @@ if __name__ == "__main__":
     img = train_inputs[0].squeeze()
     label = train_labels[0]
 
+    print("Total Mini Batches =", len(train_dataloader))
+    print("Total Inputs       =", len(train_dataloader.dataset))
+    print("Batch Size         =", train_dataloader.batch_size)
+    print("Current Batch Size =", len(train_inputs))
     print(f"Input Features batch shape : {train_inputs.size()}")
     print(f"Labels batch shape         : {train_labels.size()}\n")
 
