@@ -75,6 +75,7 @@ OPTIMIZER = torch.optim.Adam(MODEL.parameters(), lr=LEARNING_RATE)
 BEST_VALIDATION_MODEL_SAVE_PATH = os.path.join('TemplateModels', f'best_{type(MODEL).__name__}_model.pth')
 LAST_EPOCH = 0
 
+# just delete or rename the model if you want to start training again
 if os.path.isfile(BEST_VALIDATION_MODEL_SAVE_PATH):
     print('Training Checkpoint Found: Resuming Training')
     CHECKPOINT = torch.load(BEST_VALIDATION_MODEL_SAVE_PATH, weights_only=True)
@@ -330,15 +331,15 @@ if __name__ == "__main__":
                 epoch_idx
             )
 
-            writer.flush()
-            epoch_idx += 1
-            LAST_EPOCH = epoch_idx
-
             if test_loss < best_test_loss:
                 best_test_loss = test_loss
                 torch.save(MODEL.state_dict(), os.path.join(
                     'TemplateModels', f'best_epoch{epoch_idx}_{type(MODEL).__name__}_model.pth'
                 ))
+            
+        writer.flush()
+        epoch_idx += 1
+        LAST_EPOCH = epoch_idx
 
     #========== END OF TRAINING EPOCH LOOP ==========#
 
