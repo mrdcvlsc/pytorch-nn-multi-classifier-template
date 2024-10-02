@@ -58,7 +58,6 @@ if __name__ == "__main__":
     label = train_labels[0]
 
     print("Total Mini Batches =", len(train_dataloader))
-    print("Total Inputs       =", len(train_dataloader.dataset))
     print("Total Inputs       =", len(training_data))
     print("Batch Size         =", train_dataloader.batch_size)
     print("Current Batch Size =", len(train_inputs))
