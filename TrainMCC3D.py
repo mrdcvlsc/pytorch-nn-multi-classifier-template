@@ -12,7 +12,7 @@ from torch.backends import mps
 from torchvision import datasets, transforms
 from torchvision.transforms import ToTensor
 
-from TemplateModels.MultiClassClassification import MultiClassClassification
+from TemplateModels.MCC3D import MCC3D, TEN_CLASS_VECTOR_LABEL
 
 # define hyperparameters
 
@@ -53,7 +53,7 @@ TEST_DATALOADER = None
 
 # Initialize model and optimizer
 
-MODEL = MultiClassClassification()
+MODEL = MCC3D()
 OPTIMIZER = torch.optim.Adam(MODEL.parameters(), lr=LEARNING_RATE)
 
 # Load saved model if exist for when resuming training
@@ -90,7 +90,8 @@ print(f'Device Loaded To : {DEVICE}')
 # regression tasks, and nn.NLLLoss (Negative Log Likelihood) for
 # classification. nn.CrossEntropyLoss combines nn.LogSoftmax and nn.NLLLoss.
 
-LOSS_FUNCTION = torch.nn.CrossEntropyLoss()
+from CustomLoss.EuclideanDistanceLoss import EuclideanDistanceLoss
+LOSS_FUNCTION = EuclideanDistanceLoss()
 
 # register eventhandler to save model on exit
 
@@ -134,8 +135,9 @@ def test_loop(dataset, dataloader):
 
             batch_output = MODEL(batch_inputs)
 
-            average_loss += LOSS_FUNCTION(batch_output, batch_labels).item()
-            correct += (batch_output.argmax(1) == batch_labels).type(torch.float).sum().item()
+            average_loss += LOSS_FUNCTION(batch_output, TEN_CLASS_VECTOR_LABEL[batch_labels]).item()
+            predicted_classes = torch.argmin(torch.cdist(batch_output, TEN_CLASS_VECTOR_LABEL), dim=1)
+            correct += (predicted_classes == batch_labels).type(torch.float).sum().item()
 
     # calculate average loss and the accuracy of model during test
 
@@ -196,7 +198,7 @@ if __name__ == "__main__":
 
             # calculate the loss of the network
 
-            loss = LOSS_FUNCTION(batch_output, batch_labels)
+            loss = LOSS_FUNCTION(batch_output, TEN_CLASS_VECTOR_LABEL[batch_labels])
 
             # calculate the gradients of the network and perform backpropagation
 
@@ -220,7 +222,8 @@ if __name__ == "__main__":
 
                 # calculate the training accuracy and loss for each minibatch log interval
 
-                training_correct += (batch_output.argmax(1) == batch_labels).type(torch.float).sum().item()
+                training_predicted_classes = torch.argmin(torch.cdist(batch_output, TEN_CLASS_VECTOR_LABEL), dim=1)
+                training_correct += (training_predicted_classes == batch_labels).type(torch.float).sum().item()
                 training_accuracy = training_correct / len(batch_labels)
                 training_last_log_ave_loss = training_running_loss / MINI_BATCH_LOG_INTERVAL
 
